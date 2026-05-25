@@ -47,14 +47,20 @@ def get_source_patches(name: str, cap_name: str) -> list[tuple[str, str]]:
         # --- D-Bus / service identifier ---
         ("re.frida.server", f"re.{name}.server"),
 
-        # --- JNI class paths (slash form) ---
-        # Native code looks up the helper's Java classes by their slash-form JNI
-        # path, e.g. find_class("re/frida/HelperBackend") in linux-host-session.
-        # The dot-form patches above + the DEX rebuild rename the class to
-        # re.<name>.HelperBackend, but the slash-form native strings were missed
-        # -> find_class returns null -> Android helper backend_class assertion
-        # fails and frida-server aborts at startup. Rename the slash form to match.
-        ("re/frida/", f"re/{name}/"),
+        # --- JNI class paths for the Java helper (slash form) ---
+        # Native code references the helper's Java classes by slash-form JNI
+        # paths: type descriptors "Lre/frida/HelperBackend;" and the
+        # find_class("re/frida/HelperBackend") lookup. The DEX rebuild renames the
+        # package to re.<name>, so these native refs must match or find_class
+        # returns null -> Android helper backend_class assertion -> startup abort.
+        #
+        # CRITICAL: rename ONLY the JNI references (L-prefixed type descriptors +
+        # the find_class string). The D-Bus OBJECT PATHS "/re/frida/HostSession",
+        # "/re/frida/AgentSession", ... are part of the host<->server wire protocol
+        # and MUST stay "re/frida" or the stock host can't connect (ProtocolError).
+        # (A blanket "re/frida/" -> rename breaks that protocol.)
+        ("Lre/frida/", f"Lre/{name}/"),
+        ("re/frida/HelperBackend", f"re/{name}/HelperBackend"),
 
         # --- Helper binaries (spawned during injection) ---
         # More specific first, then bare form for compat system
