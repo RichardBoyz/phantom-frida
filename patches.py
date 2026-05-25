@@ -82,6 +82,15 @@ def get_rollback_patches(name: str) -> list[tuple[str, str]]:
     The global replace catches these, but they're filenames, not runtime artifacts.
     """
     return [
+        # Restore the compat 'glib_flavor' flag. 17.9.x's compat/build.py
+        # validates this positional with argparse choices=["upstream","frida"],
+        # so it MUST stay the literal 'frida'. The generic single-quoted 'frida'
+        # sweep in get_source_patches renames the
+        #   have_shared_glib ? 'upstream' : 'frida'
+        # ternary in compat/meson.build, which makes meson pass an invalid choice
+        # -> compat/build.py exits status 2 at `setup`. (17.7.2 had no such
+        # ternary / no choices= validation, so this only bites on 17.9.x.)
+        (f"'upstream' : '{name}'", "'upstream' : 'frida'"),
         # Build system files that should keep "frida-agent-" prefix
         (f"{name}-agent-x86.symbols", "frida-agent-x86.symbols"),
         (f"{name}-agent-android.version", "frida-agent-android.version"),
