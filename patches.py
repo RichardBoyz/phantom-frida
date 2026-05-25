@@ -47,6 +47,15 @@ def get_source_patches(name: str, cap_name: str) -> list[tuple[str, str]]:
         # --- D-Bus / service identifier ---
         ("re.frida.server", f"re.{name}.server"),
 
+        # --- JNI class paths (slash form) ---
+        # Native code looks up the helper's Java classes by their slash-form JNI
+        # path, e.g. find_class("re/frida/HelperBackend") in linux-host-session.
+        # The dot-form patches above + the DEX rebuild rename the class to
+        # re.<name>.HelperBackend, but the slash-form native strings were missed
+        # -> find_class returns null -> Android helper backend_class assertion
+        # fails and frida-server aborts at startup. Rename the slash form to match.
+        ("re/frida/", f"re/{name}/"),
+
         # --- Helper binaries (spawned during injection) ---
         # More specific first, then bare form for compat system
         ("frida-helper-32", f"{name}-helper-32"),
