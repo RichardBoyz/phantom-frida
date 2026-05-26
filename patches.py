@@ -454,6 +454,12 @@ def get_stability_patches_17(frida_dir: Path) -> list[dict]:
                 '    carry_on = func (entry, user_data);'
             ),
         },
+        {
+            "description": "Gadget default on_load WAIT -> RESUME (don't hold the linker lock on load when injected without a config)",
+            "file": "subprojects/frida-core/lib/gadget/gadget.vala",
+            "old": "default = LoadBehavior.WAIT;",
+            "new": "default = LoadBehavior.RESUME;",
+        },
     ]
 
 
